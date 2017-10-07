@@ -1,0 +1,3 @@
+#!/bin/bash
+
+~/Documents/ParrotSamples/out/arsdk-native/staging/native-wrapper.sh ~/Documents/ParrotSamples/out/arsdk-native/staging/usr/bin/BebopSample

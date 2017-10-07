@@ -1,0 +1,15 @@
+#!/bin/bash
+ARSDK_DIR="/home/kevin/Documents/ParrotSamples/"
+
+sudo apt-get install git build-essential autoconf libtool python python3 libavahi-client-dev libavcodec-dev libavformat-dev libswscale-dev libncurses5-dev mplayer
+
+git config --global user.email "kchumbley@gmail.com"
+git config --global user.name "Kevin Chumbley"
+
+sudo apt-get install repo
+
+mkdir -p "${ARSDK_DIR}"
+cd "${ARSDK_DIR}"
+repo init -u https://github.com/Parrot-Developers/arsdk_manifests.git
+repo sync
+./build.sh -p arsdk-native -t build-sdk -j

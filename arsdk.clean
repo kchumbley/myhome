@@ -1,0 +1,2 @@
+#!/bin/bash
+~/Documents/ParrotSamples/build.sh -p arsdk-native -t clean -j
