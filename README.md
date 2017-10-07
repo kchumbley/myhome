@@ -2,8 +2,10 @@
 Setup and control scripts for thesis simulation IN_PROGRESS
 
 
-# cd ~
+cd ~
 
-# git init
-# git remote add origin https://github.com/kchumbley/myhome.git
-# git pull origin master
+git init
+
+git remote add origin https://github.com/kchumbley/myhome.git
+
+git pull origin master
