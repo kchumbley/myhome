@@ -1,3 +1,4 @@
 #!/bin/bash
 sudo systemctl start firmwared.service
-sphinx --log-level dbg /opt/parrot-sphinx/usr/share/sphinx/drones/bebop.drone
+sleep 1
+sphinx --datalog /opt/parrot-sphinx/usr/share/sphinx/drones/mybebop.drone

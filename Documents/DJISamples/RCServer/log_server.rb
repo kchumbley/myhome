@@ -52,7 +52,7 @@ put '/' do
     
     mylog = "#{local_log}"# added by kev
     if(mylog.include? "Sticks")
-      puts "FOUND: 'Sticks' in local_log: #{local_log}"
+      #puts "FOUND: 'Sticks' in local_log: #{local_log}"
       /Sticks: Right: h:(?<rh>\-?\p{N}+), v:(?<rv>\-?\p{N}+), Left: v:(?<lv>\-?\p{N}+), h:(?<lh>\-?\p{N}+)/ =~ "#{mylog}"
       rh = Regexp.last_match(:rh)
       rv = Regexp.last_match(:rv)
@@ -60,7 +60,7 @@ put '/' do
       lh = Regexp.last_match(:lh)
       
       cur_sticks = "[#{rh},#{rv},#{lv},#{lh}]"
-      puts "cur_sticks: #{cur_sticks}"
+      #puts "cur_sticks: #{cur_sticks}"
       File.open('cur_sticks.txt', 'w') do |f2|
           f2.puts "cur_sticks: #{cur_sticks}"
       end
