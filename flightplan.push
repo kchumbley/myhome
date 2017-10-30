@@ -1,0 +1,13 @@
+#!/bin/bash
+HOST='10.202.0.1'
+
+cd /home/kevin/Documents
+ls
+ftp -n -v $HOST << EOT
+ascii
+prompt
+cd internal_000
+cd flightplans
+put flightplan.mavlink
+bye
+EOT

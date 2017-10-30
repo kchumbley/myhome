@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<drone
+  name="mybebop"
+  firmware="/home/kevin/Downloads/ardrone3-mykonos3_pc.ext2"
+  hardware="mykonos3board">
+  <sdf_params
+    low_gpu="false"
+    with_bumpers="false"
+    with_front_cam="false"/>
+  <interface>eth1</interface>
+  <stolen_interface>wlan0:eth0:192.168.42.1/24</stolen_interface>
+</drone>
