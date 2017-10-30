@@ -2,4 +2,4 @@
 sudo systemctl start firmwared.service
 sleep 1
 cd ~/Documents/
-sphinx worlds/myempty.world
+sphinx my_worlds/myempty.world
