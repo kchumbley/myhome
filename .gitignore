@@ -29,4 +29,11 @@ jre1.8.0_144/
 .dbus/
 Documents/ParrotSamples/
 telemetrylogs/
-
+.gnome/
+.java/
+.pki/
+AirmapsDev_Key.txt
+Documents/OSM2World/
+Documents/my_models/my_model/dae/
+Documents/my_models/my_model/obj/
+Documents/my_models/my_model/osm/
