@@ -1,0 +1,14 @@
+#!/bin/bash
+
+cd "~/Documents/"
+git clone https://github.com/tordanik/OSM2World.git
+cd OSM2World && ant jar
+cd build
+wget http://osm2world.org/download/files/misc/OSM2World%20Texture%20Selection%202014-07-19.zip
+unzip OSM2World\ Texture\ Selection\ 2014-07-19.zip
+
+sudo add-apt-repository ppa:irie/blender
+sudo apt-get update
+sudo apt-get install blender
+sudo adduser kevin video
+
