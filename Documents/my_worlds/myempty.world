@@ -3,23 +3,22 @@
   <world name="default">
     <gui>
       <camera name="user_camera">
-        <pose>0 0 1 0.0 0.0 0.0</pose>
+        <pose>-2 0 0.5 0.0 0.0 0.0</pose>
         <track_visual>
+					<name>mybebop</name><!--track model from startup-->
           <static>true</static>
           <use_model_frame>true</use_model_frame>
-          <xyz>-1.0 0.0 0.3</xyz>
+          <xyz>-2.0 0.0 0.5</xyz>
           <inherit_yaw>true</inherit_yaw>
         </track_visual>
       </camera>
     </gui>
     <spherical_coordinates>
 			<!--
-				{ 48.878922 2.367782 }, 45m above sea level, 
-				{ 108.4 nT 20,799.7 nT 43,289.9 nT }, 2015-08-18 parrot_hq_france 
-				was { 0.1062e-6 20.8038e-6 -43.2881e-6 }
+				parrot_hq_france, 45m above sea level, { 108.4 nT 20,799.7 nT 43,289.9 nT }, 2015-08-18  
 			-->
-      <latitude_deg>47.4907</latitude_deg>
-      <longitude_deg>-117.5846</longitude_deg>
+      <latitude_deg>47.55068</latitude_deg><!--was 48.878922-->
+      <longitude_deg>-117.59947</longitude_deg><!--was 2.367782-->
     </spherical_coordinates>
     <physics type="ode">
       <real_time_update_rate>1000</real_time_update_rate>
@@ -28,7 +27,7 @@
       <max_contacts>20</max_contacts>
       <gravity>0 0 -9.81</gravity>
 			<!--ENU nT-->
-			<magnetic_field>4.6800e-6 17.9432e-6 -50.9394e-6</magnetic_field>
+			<magnetic_field>4.6800e-6 17.9432e-6 -50.9394e-6</magnetic_field> <!--was 0.1062e-6 20.8038e-6 -43.2881e-6-->
       <ode>
         <solver>
           <type>world</type>
@@ -51,23 +50,23 @@
       <pressure>102133</pressure><!--was 101325-->
       <temperature_gradient>-0.0065</temperature_gradient>
     </atmosphere>
-	<plugin name="fwman" filename="libsphinx_fwman.so">
-		<drone
-		  name="mybebop"
-		  firmware="/home/kevin/Downloads/ardrone3-mykonos3_pc.ext2"
-		  hardware="mykonos3board">
-		  <sdf_params
-			low_gpu="false"
-			with_bumpers="false"
-			with_front_cam="false"/>
-		  <interface>eth1</interface>
-		  <stolen_interface>wlan0:eth0:192.168.42.1/24</stolen_interface>
-			<!--<fs_size>2G</fs_size>-->
-		</drone>
-		<spawn_point name="default">
-			<pose>0 0 0.2 0 0 0</pose>
-		</spawn_point>
-	</plugin>
+		<plugin name="fwman" filename="libsphinx_fwman.so">
+			<drone
+				name="mybebop"
+				firmware="/home/kevin/Downloads/ardrone3-mykonos3_pc.ext2"
+				hardware="mykonos3board">
+				<sdf_params
+				low_gpu="false"
+				with_bumpers="false"
+				with_front_cam="false"/>
+				<!--<interface>eth1</interface>
+				<stolen_interface>wlan0:eth0:192.168.42.1/24</stolen_interface>-->
+				<fs_size>2G</fs_size>
+			</drone>
+			<spawn_point name="default">
+				<pose>0 0 0.2 0 0 0</pose>
+			</spawn_point>
+		</plugin>
     <!--*****************-->
     <!--Scene description-->
     <!--*****************-->
@@ -75,7 +74,7 @@
       <uri>model://sun</uri>
     </include>
 	<include>
-  		<uri>model://ground_plane</uri>
+  		<uri>model://my_model</uri>
 	</include>
   </world>
 </sdf>
