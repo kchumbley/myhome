@@ -37,3 +37,8 @@ Documents/OSM2World/
 Documents/my_models/my_model/dae/
 Documents/my_models/my_model/obj/
 Documents/my_models/my_model/osm/
+.CLion2017.2/
+.icons/
+.lesshst
+.ros/
+CLionProjects/

@@ -7,7 +7,7 @@ textures_loc = '/home/kevin/Documents/OSM2World/build/textures/'
 outfile_loc = '/home/kevin/Documents/my_models/my_model/dae/my_model.dae'
 
 imported_object = bpy.ops.import_scene.obj(filepath=infile_loc)
-obj_object = bpy.context.selected_objects[0] ####<--Fix
+obj_object = bpy.context.selected_objects[0]
 print('Imported name: ', obj_object.name)
 bpy.context.scene.objects.active = obj_object
 bpy.ops.object.select_all(action='SELECT')

@@ -42,6 +42,14 @@ void commandReceived (eARCONTROLLER_DICTIONARY_KEY commandKey, ARCONTROLLER_DICT
 
 // IHM updates from commands
 void batteryStateChanged (uint8_t percent);
+void gpsStateChanged (double latitude, double longitude, double altitude);
+void attitudeStateChanged (float roll, float pitch, float yaw);
+void speedStateChanged (float speedX, float speedY, float speedZ);
+
+// IHM updates from commands
+void onGPSCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onAttitudeCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onSpeedCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
 
 // called when a streaming frame has been received
 eARCONTROLLER_ERROR didReceiveFrameCallback (ARCONTROLLER_Frame_t *frame, void *customData);
@@ -52,5 +60,7 @@ eARCONTROLLER_ERROR decoderConfigCallback (ARCONTROLLER_Stream_Codec_t codec, vo
 void onInputEvent (eIHM_INPUT_EVENT event, void *customData);
 
 int customPrintCallback (eARSAL_PRINT_LEVEL level, const char *tag, const char *format, va_list va);
+
+double distance (double lat_0, double lon_0, double lat_1, double lon_1);
 
 #endif /* BEBOP_SAMPLE_H */

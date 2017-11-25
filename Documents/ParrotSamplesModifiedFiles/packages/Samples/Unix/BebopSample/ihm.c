@@ -66,6 +66,15 @@
 #define STICKS_X 0
 #define STICKS_Y 6
 
+#define GPS_X 0
+#define GPS_Y 8
+
+#define ATT_X 0
+#define ATT_Y 10
+
+#define SPD_X 0
+#define SPD_Y 12
+
 /*****************************************
  *
  *             private header:
@@ -274,6 +283,20 @@ void *IHM_InputProcessing(void *data)
                     ihm->onInputEventCallback (IHM_INPUT_EVENT_HOME, ihm->customData);
                 }
             }
+            else if(key == 'p')
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_PLAN, ihm->customData);
+                }
+            }
+            else if(key == '-')
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_FLAT_TRIM, ihm->customData);
+                }
+            }
             else
             {
                 if(ihm->onInputEventCallback != NULL)
@@ -329,3 +352,32 @@ void IHM_PrintSticks(IHM_t *ihm, char *sticksStr)
     }
 }
 
+void IHM_PrintGPS(IHM_t *ihm, double latitude, double longitude, double altitude)
+{
+    if (ihm != NULL)
+    {
+        move(GPS_Y, 0);     // move to begining of line
+        clrtoeol();             // clear line
+        mvprintw(GPS_Y, GPS_X, "latitude:%f, longitude:%f, altitude:%f", latitude, longitude, altitude);
+    }
+}
+
+void IHM_PrintAttitude(IHM_t *ihm, float roll, float pitch, float yaw)
+{
+    if (ihm != NULL)
+    {
+        move(ATT_Y, 0);     // move to begining of line
+        clrtoeol();             // clear line
+        mvprintw(ATT_Y, ATT_X, "roll:%f, pitch:%f, yaw:%f", roll, pitch, yaw);
+    }
+}
+
+void IHM_PrintSpeed(IHM_t *ihm, float speedX, float speedY, float speedZ)
+{
+    if (ihm != NULL)
+    {
+        move(SPD_Y, 0);     // move to begining of line
+        clrtoeol();             // clear line
+        mvprintw(SPD_Y, SPD_X, "speedX:%f, speedY:%f, speedZ:%f", speedX, speedY, speedZ);
+    }
+}
