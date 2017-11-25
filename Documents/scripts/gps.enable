@@ -1,0 +1,1 @@
+echo '{"jsonrpc": "2.0", "method": "SetParam", "params": {"machine":"mybebop", "object":"gps/gps", "parameter":"out_of_order", "value":"true"}, "id": 1}' | curl -d @- http://localhost:8383 | python -m json.tool
