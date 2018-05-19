@@ -75,6 +75,12 @@
 #define SPD_X 0
 #define SPD_Y 12
 
+#define FLIGHTPLAN_X 0
+#define FLIGHTPLAN_Y 14
+
+#define BOUNDING_X 0
+#define BOUNDING_Y 16
+
 /*****************************************
  *
  *             private header:
@@ -87,6 +93,10 @@ void *IHM_InputProcessing(void *data);
  *             implementation :
  *
  *****************************************/
+static int num = -1;
+int getNum(){
+    return num;
+}
 
 IHM_t *IHM_New (IHM_onInputEvent_t onInputEventCallback)
 {
@@ -283,11 +293,19 @@ void *IHM_InputProcessing(void *data)
                     ihm->onInputEventCallback (IHM_INPUT_EVENT_HOME, ihm->customData);
                 }
             }
+            else if(48 <= key && key <= 57)//TODO: use regex based menu from past coursework, nums [0-9]
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    num = key-48;
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_NUM, ihm->customData);
+                }
+            }
             else if(key == 'p')
             {
                 if(ihm->onInputEventCallback != NULL)
                 {
-                    ihm->onInputEventCallback (IHM_INPUT_EVENT_PLAN, ihm->customData);
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_GOTO_CUR_WP, ihm->customData);
                 }
             }
             else if(key == '-')
@@ -295,6 +313,27 @@ void *IHM_InputProcessing(void *data)
                 if(ihm->onInputEventCallback != NULL)
                 {
                     ihm->onInputEventCallback (IHM_INPUT_EVENT_FLAT_TRIM, ihm->customData);
+                }
+            }
+            else if(key == 's')
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_TOGGLE_STICKS, ihm->customData);
+                }
+            }
+            else if(key == 'v')
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_TOGGLE_VERBOSE_MODE, ihm->customData);
+                }
+            }
+            else if(key == 'b')
+            {
+                if(ihm->onInputEventCallback != NULL)
+                {
+                    ihm->onInputEventCallback (IHM_INPUT_EVENT_TOGGLE_BOUNDING_MODE, ihm->customData);
                 }
             }
             else
@@ -379,5 +418,16 @@ void IHM_PrintSpeed(IHM_t *ihm, float speedX, float speedY, float speedZ)
         move(SPD_Y, 0);     // move to begining of line
         clrtoeol();             // clear line
         mvprintw(SPD_Y, SPD_X, "speedX:%f, speedY:%f, speedZ:%f", speedX, speedY, speedZ);
+    }
+}
+
+
+void IHM_PrintWaypointChoice(IHM_t *ihm, int index, double latitude, double longitude, double altitude)
+{
+    if (ihm != NULL)
+    {
+        move(FLIGHTPLAN_Y, 0);     // move to begining of line
+        clrtoeol();             // clear line
+        mvprintw(FLIGHTPLAN_Y, FLIGHTPLAN_X, "waypoint_choice %i: { latitude:%f, longitude:%f, altitude:%f } SELECTED", index, latitude, longitude, altitude);
     }
 }

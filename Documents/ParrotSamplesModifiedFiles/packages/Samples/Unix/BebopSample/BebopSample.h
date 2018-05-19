@@ -50,6 +50,12 @@ void speedStateChanged (float speedX, float speedY, float speedZ);
 void onGPSCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
 void onAttitudeCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
 void onSpeedCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onMoveEndCommandReceived (ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onSetMaxPitchRollCommmandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onSetMaxVerticalSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onSetMaxPitchRollRotationSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+void onSetMaxRotationSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary);
+
 
 // called when a streaming frame has been received
 eARCONTROLLER_ERROR didReceiveFrameCallback (ARCONTROLLER_Frame_t *frame, void *customData);
@@ -57,10 +63,23 @@ eARCONTROLLER_ERROR didReceiveFrameCallback (ARCONTROLLER_Frame_t *frame, void *
 eARCONTROLLER_ERROR decoderConfigCallback (ARCONTROLLER_Stream_Codec_t codec, void *customData);
 
 /* IHM callbacks: */
+void performRelativeMove(ARCONTROLLER_Device_t *deviceController);
+void startFlightplan(ARCONTROLLER_Device_t *deviceController);
+void performTimedFlightTest(ARCONTROLLER_Device_t *deviceController);
+void performBackFlip(ARCONTROLLER_Device_t *deviceController);
+void loadWaypoints(void);
+void displayWaypoint(void);
+
 void onInputEvent (eIHM_INPUT_EVENT event, void *customData);
+
+
 
 int customPrintCallback (eARSAL_PRINT_LEVEL level, const char *tag, const char *format, va_list va);
 
 double distance (double lat_0, double lon_0, double lat_1, double lon_1);
+double heading(double lat_0, double lon_0, double lat_1, double lon_1);
+
+int pointInPolygon(int nvert, double *vertx, double *verty, double testx, double testy);
+
 
 #endif /* BEBOP_SAMPLE_H */

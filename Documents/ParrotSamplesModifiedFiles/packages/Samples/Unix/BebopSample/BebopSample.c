@@ -61,6 +61,43 @@
 #define DEG2RAD PI/180.0
 #define RAD2DEG 180.0/PI
 
+char cur_advisory_color_filePathStr[100] = "/home/kevin/Documents/cur_advisory_color.txt";
+
+bool rcDisabled = true;
+char cur_sticks_filePathStr[100] = "/home/kevin/Documents/DJISamples/RCServer/cur_sticks.txt";
+
+char flightplan_filePathStr[100] = "/home/kevin/Documents/flightplan_sphinx_ewu.mavlink";
+char flightplan_remoteFTP_filePathStr[256] = "internal_000/flightplans/flightplan.mavlink";
+
+static bool autoContinue = false;
+const double max_dX = 1000;
+const double endMove_dS = 5.0;
+
+static int waypoint_choice = 0;
+#define MAX_NUM_WAYPOINTS 8
+static int numWaypoints = 0;
+static double waypoints[MAX_NUM_WAYPOINTS][4];
+
+#define MAX_NUM_REGIONS 1
+#define MAX_NUM_POINTS 5
+
+static int insideExclusionZone = 0;
+static double exclusionZones[MAX_NUM_REGIONS][MAX_NUM_POINTS][2] = {
+        {
+                {47.490568, -117.585980},
+                {47.490565, -117.585516},
+                {47.490052, -117.585514},
+                {47.490058, -117.585973},
+                {47.490568, -117.585980},
+        }};
+
+static float cur_speedX, cur_speedY, cur_speedZ;
+static float cur_roll, cur_pitch, cur_yaw;
+static double cur_lat, cur_lon, cur_alt;
+
+bool verboseModeDisabled = true;
+bool boundingModeDisabled = true;
+
 /*****************************************
  *
  *             define :
@@ -314,7 +351,7 @@ int main(int argc, char *argv[]) {
 
     if (!failed) {
         IHM_PrintInfo(ihm,
-                      "Running ... ('t' to takeoff ; Spacebar to land ; 'e' for emergency ; Arrow keys and ('r','f','d','g') to move ; 'q' to quit; 'h' for go home; 'p' for plan, '-' for flat-trim)");
+                      "Running ... ('t' to takeoff ; Spacebar to land ; 'e' for emergency ; Arrow keys and ('r','f','d','g') to move ; 'q' to quit; 'h' for go home; 'p' for plan, 0-9 for waypoints, '-' for flat-trim)");
 
 #ifdef IHM
         while (gIHMRun) {
@@ -446,7 +483,7 @@ static void cmdSensorStateListChangedRcv(ARCONTROLLER_Device_t *deviceController
     }
 
     // get the command received in the device controller
-    HASH_ITER(hh, elementDictionary, dictElement, dictTmp)
+    HASH_ITER(hh, elementDictionary, dictElement, dictTmp)  //TODO: fix syntax highlighting error reported in CLion
     {
         // get the Name
         HASH_FIND_STR(dictElement->arguments,
@@ -474,6 +511,7 @@ static void cmdSensorStateListChangedRcv(ARCONTROLLER_Device_t *deviceController
 
 void
 onGPSCommandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
+//    eARCONTROLLER_ERROR error = ARCONTROLLER_OK;
     ARCONTROLLER_DICTIONARY_ARG_t *arg = NULL;
     ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
     HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
@@ -493,6 +531,61 @@ onGPSCommandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DICTI
                       arg);
         if (arg != NULL) {
             altitude = arg->value.Double;
+        }
+
+        cur_lat = latitude;
+        cur_lon = longitude;
+        cur_alt = altitude;
+        if(! boundingModeDisabled) {
+//            double maxLat = -90, minLat = 90, maxLon = -180, minLon = 180;
+            double avgLat = 0, avgLon = 0;
+            int cur_point_index = 0;
+            for(cur_point_index = 0; cur_point_index < MAX_NUM_POINTS - 1; cur_point_index++) {
+                double lat = exclusionZones[0][cur_point_index][0];
+                double lon = exclusionZones[0][cur_point_index][1];
+                avgLat += lat;
+                avgLon += lon;
+
+                /*if( lat > maxLat ) { maxLat = lat; }
+                if( lat < minLat ) { minLat = lat; }
+                if( lon > maxLon ) { maxLon = lon; }
+                if( lon < minLon ) { minLon = lon; }*/
+            }
+            avgLat /= (double)(MAX_NUM_POINTS - 1);//TODO: Make global or dynamic var instead of hard-coding the value to equal 4.0
+            avgLon /= (double)(MAX_NUM_POINTS - 1);
+
+
+            double exclusionZones_0_center_lat = avgLat; //(maxLat - minLat)/2.0;
+            double exclusionZones_0_center_lon = avgLon; //(maxLon - minLon)/2.0;
+            double dS_0 = distance(cur_lat, cur_lon, exclusionZones_0_center_lat, exclusionZones_0_center_lon);
+            double dPsi_0 = heading(cur_lat, cur_lon, exclusionZones_0_center_lat, exclusionZones_0_center_lon);
+
+            double exclusionZones_0_lats[MAX_NUM_POINTS] = {
+                    exclusionZones[0][0][0],
+                    exclusionZones[0][1][0],
+                    exclusionZones[0][2][0],
+                    exclusionZones[0][3][0],
+                    exclusionZones[0][4][0],
+            };
+            double exclusionZones_0_lons[MAX_NUM_POINTS] = {
+                    exclusionZones[0][0][1],
+                    exclusionZones[0][1][1],
+                    exclusionZones[0][2][1],
+                    exclusionZones[0][3][1],
+                    exclusionZones[0][4][1],
+            };
+
+            insideExclusionZone = pointInPolygon(MAX_NUM_POINTS,exclusionZones_0_lats, exclusionZones_0_lons, cur_lat, cur_lon);
+
+            if(insideExclusionZone){
+                if(autoContinue){ autoContinue = false; }
+//                error = deviceController->aRDrone3->setPilotingPCMD(deviceController->aRDrone3, 0, 0, 0, 0, 0, 0);
+            }
+            char str[256];
+            if(!verboseModeDisabled)
+                sprintf(str, "exclusionZones_0: { center:{ lat:%lf, lon:%lf, dS_0:%lf, dPsi_0:%lf }, inside: %s} \n",
+                        exclusionZones_0_center_lat, exclusionZones_0_center_lon, dS_0, dPsi_0, insideExclusionZone ? "true" : "false");
+            IHM_PrintInfo(ihm, str);
         }
         gpsStateChanged(latitude, longitude, altitude);
     }
@@ -528,7 +621,7 @@ onSpeedCommandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DIC
     ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
     HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
     if (element != NULL) {
-        float speedX, speedY, speedZ;
+        float speedX = 0.0, speedY = 0.0, speedZ = 0.0;
         HASH_FIND_STR(element->arguments, ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSTATE_SPEEDCHANGED_SPEEDX, arg);
         if (arg != NULL) {
             speedX = arg->value.Float;
@@ -544,7 +637,6 @@ onSpeedCommandReceived(ARCONTROLLER_Device_t *deviceController, ARCONTROLLER_DIC
         speedStateChanged(speedX, speedY, speedZ);
     }
 }
-
 
 void onMoveEndCommandReceived(ARCONTROLLER_Device_t *deviceController,
                               ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
@@ -572,15 +664,177 @@ void onMoveEndCommandReceived(ARCONTROLLER_Device_t *deviceController,
         HASH_FIND_STR(element->arguments, ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGEVENT_MOVEBYEND_ERROR, arg);
         if (arg != NULL) {
             eARCOMMANDS_ARDRONE3_PILOTINGEVENT_MOVEBYEND_ERROR error = arg->value.I32;
+            if(error>0) {
+                char moveErrorStr[256];
+                sprintf(moveErrorStr, "moveErrorStr:%i\n", error);
+                IHM_PrintInfo(ihm, moveErrorStr);
+            }
         }
     }
-    char str[256];
+    /*char str[256];
     sprintf(str, "dX_end:%f m,dY_end:%f m,dZ_end:%f m, dPsi_end:%lf rd\n", dX_end, dY_end, dZ_end, dPsi_end);
-    IHM_PrintInfo(ihm, str);
+    IHM_PrintInfo(ihm, str);*/
+    double lat0 = cur_lat,lon0 = cur_lon,lat1 = waypoints[waypoint_choice][0],lon1 = waypoints[waypoint_choice][1];
+    double tot_dX = distance(lat0, lon0, lat1, lon1);
+    double dX = tot_dX < max_dX ? tot_dX : max_dX; //1000 meters max
+    double dZ = cur_alt - waypoints[waypoint_choice][2];
+    double dPsi = heading(lat0, lon0, lat1, lon1) - (double) cur_yaw;
+    dPsi = dPsi>PI?(dPsi-(2.0*PI)):dPsi;
+    if(autoContinue) {
+        if(dX > 5.0 || abs(dZ) > 5.0) {//TODO: add dependence on gps, compass, imu and optical flow positioning accuracy
+            if (abs(dPsi) > 0.5) {
+                deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 0.0, 0.0, (float) dPsi);
+            } else {
+                deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, (float) dX, 0.0, (float) dZ, 0.0);
+            }
+        } else if (waypoint_choice < numWaypoints - 1) {
+            waypoint_choice++;
+            char waypoint_choice_str[256];
+                sprintf(waypoint_choice_str, "waypoint_choice:%i\n", waypoint_choice);
+            IHM_PrintInfo(ihm, waypoint_choice_str);
+            performRelativeMove(deviceController);
+        } else {
+            autoContinue = false;
+                IHM_PrintInfo(ihm, "PLAN FINISHED");
+        }
+    }
 }
 
+void onSetMaxPitchRollCommmandReceived(ARCONTROLLER_Device_t *deviceController,
+                                       ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
+    ARCONTROLLER_DICTIONARY_ARG_t *arg = NULL;
+    ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
+    HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
+    if (element != NULL) {
+        float current = 0.0, min = 0.0, max = 0.0;
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSETTINGSSTATE_MAXTILTCHANGED_CURRENT, arg);
+        if (arg != NULL) {
+            current = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments, ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSETTINGSSTATE_MAXTILTCHANGED_MIN,
+                      arg);
+        if (arg != NULL) {
+            min = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments, ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSETTINGSSTATE_MAXTILTCHANGED_MAX,
+                      arg);
+        if (arg != NULL) {
+            max = arg->value.Float;
+        }
+        if(!verboseModeDisabled) {
+            char setMaxPitchRollStr[256];
+            sprintf(setMaxPitchRollStr, "onSetMaxPitchRollCommmandReceived current:%f,min:%f,max:%f\n", current, min,
+                    max);
+            IHM_PrintInfo(ihm, setMaxPitchRollStr);
+        }
+    }
+}
+
+void onSetMaxVerticalSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController,
+                                           ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
+    float current = 0.0, min = 0.0, max = 0.0;
+
+    ARCONTROLLER_DICTIONARY_ARG_t *arg = NULL;
+    ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
+    HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
+    if (element != NULL) {
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXVERTICALSPEEDCHANGED_CURRENT, arg);
+        if (arg != NULL) {
+            current = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXVERTICALSPEEDCHANGED_MIN, arg);
+        if (arg != NULL) {
+            min = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXVERTICALSPEEDCHANGED_MAX, arg);
+        if (arg != NULL) {
+            max = arg->value.Float;
+        }
+    }
+    if(!verboseModeDisabled) {
+        char setMaxVerticalSpeedStr[256];
+        sprintf(setMaxVerticalSpeedStr, "onSetMaxVerticalSpeedCommmandReceived current:%f,min:%f,max:%f\n", current,
+                min,
+                max);
+        IHM_PrintInfo(ihm, setMaxVerticalSpeedStr);
+    }
+}
+
+void onSetMaxPitchRollRotationSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController,
+                                                    ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
+    float current = 0.0, min = 0.0, max = 0.0;
+
+    ARCONTROLLER_DICTIONARY_ARG_t *arg = NULL;
+    ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
+    HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
+    if (element != NULL) {
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXPITCHROLLROTATIONSPEEDCHANGED_CURRENT,
+                      arg);
+        if (arg != NULL) {
+            current = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXPITCHROLLROTATIONSPEEDCHANGED_MIN,
+                      arg);
+        if (arg != NULL) {
+            min = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXPITCHROLLROTATIONSPEEDCHANGED_MAX,
+                      arg);
+        if (arg != NULL) {
+            max = arg->value.Float;
+        }
+    }
+    if(!verboseModeDisabled) {
+        char setMaxPitchRollRotationSpeedStr[256];
+        sprintf(setMaxPitchRollRotationSpeedStr,
+                "onSetMaxPitchRollRotationSpeedCommmandReceived current:%f,min:%f,max:%f\n", current, min, max);
+        IHM_PrintInfo(ihm, setMaxPitchRollRotationSpeedStr);
+    }
+}
+
+void onSetMaxRotationSpeedCommmandReceived(ARCONTROLLER_Device_t *deviceController,
+                                           ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary) {
+    float current = 0.0, min = 0.0, max = 0.0;
+
+    ARCONTROLLER_DICTIONARY_ARG_t *arg = NULL;
+    ARCONTROLLER_DICTIONARY_ELEMENT_t *element = NULL;
+    HASH_FIND_STR(elementDictionary, ARCONTROLLER_DICTIONARY_SINGLE_KEY, element);
+    if (element != NULL) {
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXROTATIONSPEEDCHANGED_CURRENT, arg);
+        if (arg != NULL) {
+            current = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXROTATIONSPEEDCHANGED_MIN, arg);
+        if (arg != NULL) {
+            min = arg->value.Float;
+        }
+        HASH_FIND_STR(element->arguments,
+                      ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXROTATIONSPEEDCHANGED_MAX, arg);
+        if (arg != NULL) {
+            max = arg->value.Float;
+        }
+    }
+    if(!verboseModeDisabled) {
+        char setMaxRotationStr[256];
+        sprintf(setMaxRotationStr, "onSetMaxRotationSpeedCommmandReceived current:%f,min:%f,max:%f\n", current, min,
+                max);
+        IHM_PrintInfo(ihm, setMaxRotationStr);
+    }
+}
+
+
 // called when a command has been received from the drone
-void commandReceived(eARCONTROLLER_DICTIONARY_KEY commandKey, ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary,
+void commandReceived(eARCONTROLLER_DICTIONARY_KEY commandKey,
+                     ARCONTROLLER_DICTIONARY_ELEMENT_t *elementDictionary,
                      void *customData) {
     ARCONTROLLER_Device_t *deviceController = customData;
 
@@ -607,6 +861,18 @@ void commandReceived(eARCONTROLLER_DICTIONARY_KEY commandKey, ARCONTROLLER_DICTI
         case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGEVENT_MOVEBYEND:
             onMoveEndCommandReceived(deviceController, elementDictionary);
             break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXVERTICALSPEEDCHANGED:
+            onSetMaxVerticalSpeedCommmandReceived(deviceController, elementDictionary);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_PILOTINGSETTINGSSTATE_MAXTILTCHANGED:
+            onSetMaxPitchRollCommmandReceived(deviceController, elementDictionary);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXPITCHROLLROTATIONSPEEDCHANGED:
+            onSetMaxPitchRollRotationSpeedCommmandReceived(deviceController, elementDictionary);
+            break;
+        case ARCONTROLLER_DICTIONARY_KEY_ARDRONE3_SPEEDSETTINGSSTATE_MAXROTATIONSPEEDCHANGED:
+            onSetMaxRotationSpeedCommmandReceived(deviceController, elementDictionary);
+            break;
         default:
             break;
     }
@@ -620,20 +886,19 @@ void batteryStateChanged(uint8_t percent) {
     }
 }
 
-static float cur_speedX, cur_speedY, cur_speedZ;
 
 void speedStateChanged(float speedX, float speedY, float speedZ) {
-    // callback of changing of attitude label
+    // callback of changing of speed label
 
     if (ihm != NULL) {
         cur_speedX = speedX;
         cur_speedY = speedY;
         cur_speedZ = speedZ;
-        IHM_PrintSpeed(ihm, speedX, speedY, speedZ);
+        if(!verboseModeDisabled)
+            IHM_PrintSpeed(ihm, speedX, speedY, speedZ);
     }
 }
 
-static float cur_roll, cur_pitch, cur_yaw;
 
 void attitudeStateChanged(float roll, float pitch, float yaw) {
     // callback of changing of attitude label
@@ -642,20 +907,17 @@ void attitudeStateChanged(float roll, float pitch, float yaw) {
         cur_roll = roll;
         cur_pitch = pitch;
         cur_yaw = yaw;
-        IHM_PrintAttitude(ihm, roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
+        if(!verboseModeDisabled)
+            IHM_PrintAttitude(ihm, roll * RAD2DEG, pitch * RAD2DEG, yaw * RAD2DEG);
     }
 }
 
-static double cur_lat, cur_lon, cur_alt;
 
 void gpsStateChanged(double latitude, double longitude, double altitude) {
     // callback of changing of gps label
-
     if (ihm != NULL) {
-        cur_lat = latitude;
-        cur_lon = longitude;
-        cur_alt = altitude;
-        IHM_PrintGPS(ihm, latitude, longitude, altitude);
+        if(!verboseModeDisabled)
+            IHM_PrintGPS(ihm, latitude, longitude, altitude);
         //FILE* file = fopen("/home/kevin/Documents/current_position.txt", "w");
         //fprintf(file,"lat: %f,lon: %f,alt: %f,", latitude, longitude, altitude);
         //fclose(file);
@@ -701,6 +963,193 @@ eARCONTROLLER_ERROR didReceiveFrameCallback(ARCONTROLLER_Frame_t *frame, void *c
     return ARCONTROLLER_OK;
 }
 
+////TODO: FRONT, BACK, RIGHT, LEFT KEY BINDINGS
+void performBackFlip(ARCONTROLLER_Device_t *deviceController) {
+    eARCOMMANDS_ARDRONE3_ANIMATIONS_FLIP_DIRECTION direction = ARCOMMANDS_ARDRONE3_ANIMATIONS_FLIP_DIRECTION_BACK;
+    int res = deviceController->aRDrone3->sendAnimationsFlip(deviceController->aRDrone3, direction);
+    if (res < 0) {
+        IHM_PrintInfo(ihm, "performBackFlip ERROR");
+    }
+}
+
+void loadWaypoints() {
+    //float dX = 0.0, dY = 0.0, dZ = 0.0, dPsi = 0.0;
+    FILE *file = fopen(flightplan_filePathStr, "r");
+    char lines[20][256];
+    int i = 0;
+    //fgets(lines[i], sizeof(lines[0]), file);
+    int res = fscanf(file, "%s %s %s\n", lines[0], lines[1], lines[2]);
+    if (res < 0) {
+        IHM_PrintInfo(ihm, "loadWaypoints read header ERROR");
+    }
+    //printf("%s %s %s\n", lines[0],lines[1],lines[2]);
+
+    int j = 0;//num found waypoints
+    for (i = 0; i < MAX_NUM_WAYPOINTS; i++) {
+        char index[256], cur_wp[256], coord_frame[256], cmd[256], param1[256], param2[256], param3[256];
+        double yaw, lat, lon, alt;
+        char autocontinue[256];
+        int res = fscanf(file, "%s %s %s %s %s %s %s %lf %lf %lf %lf %s\n", index, cur_wp, coord_frame, cmd, param1,
+                         param2, param3, &yaw, &lat, &lon, &alt, autocontinue);
+        if (res < 0) {
+            IHM_PrintInfo(ihm, "loadWaypoints read line ERROR");
+        }
+        if (strstr(cmd, "16")) {// check for waypoint command
+            waypoints[j][0] = lat;
+            waypoints[j][1] = lon;
+            waypoints[j][2] = alt;
+            yaw = yaw * DEG2RAD;
+            waypoints[j][3] = yaw;
+            j++;
+        }
+        //fgets(lines[i], sizeof(lines[0]), file);
+        //printf("%s", lines[i]);
+
+        /*if (i == waypoint_choice) { //TODO: test for broken after recent modifications
+            double hypotenuse = distance(cur_lat, cur_lon, lat, lon);
+            dX = (float) distance(cur_lat, cur_lon, cur_lat, lon);
+            dY = (float) distance(cur_lat, cur_lon, lat, cur_lon);
+            dZ = (float) 0.0; // (float) alt - cur_alt;
+            dPsi = 0.0-yaw;
+            char str[256];
+            sprintf(str, "{cur_lat:%lf dg,cur_lon:%lf dg,cur_alt:%lf m,cur_yaw:%lf rd},{lat:%lf dg,lon:%lf dg,alt:%lf m,yaw:%lf rd},{dX:%f m,dY:%f m,dZ:%f m, hypotenuse:%lf m}\n", cur_lat, cur_lon, cur_alt, cur_yaw, lat, lon, alt, yaw, dX, dY, dZ, hypotenuse);
+            IHM_PrintInfo(ihm, str);
+        }*/
+
+    }
+    numWaypoints = j;
+    fclose(file);
+}
+
+void performTimedFlightTest(ARCONTROLLER_Device_t *deviceController) {
+    ////relative move works
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 0.0, 0.0, 0.0 - cur_yaw);
+    IHM_PrintInfo(ihm, "HEADING NORTH SENT\n");
+    sleep(5);
+
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 1.0, 0.0, 0.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION POSITIVE X SENT\n");
+    sleep(5);
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, -1.0, 0.0, 0.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION NEGATIVE X SENT\n");
+    sleep(5);
+
+
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 1.0, 0.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION POSITIVE Y SENT\n");
+    sleep(5);
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, -1.0, 0.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION NEGATIVE Y SENT\n");
+    sleep(5);
+
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 0.0, 1.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION POSITIVE Z SENT\n");
+    sleep(5);
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 0.0, -1.0, 0.0);
+    IHM_PrintInfo(ihm, "POSITION NEGATIVE Z SENT\n");
+    sleep(5);
+
+    IHM_PrintInfo(ihm, "MOVES ALL DONE\n");
+}
+
+////TODO: listen for flightplan component state callbacks
+void startFlightplan(ARCONTROLLER_Device_t *deviceController) {
+    eARCOMMANDS_COMMON_MAVLINK_START_TYPE type = ARCOMMANDS_COMMON_MAVLINK_START_TYPE_FLIGHTPLAN;
+    int error = deviceController->common->sendMavlinkStart(deviceController->common, flightplan_filePathStr, type);
+    if (error < 0) {
+        IHM_PrintInfo(ihm, "startFlightplan ERROR");
+    }
+
+}
+
+void performRelativeMove(ARCONTROLLER_Device_t *deviceController) {
+    double lat0 = cur_lat,lon0 = cur_lon,lat1 = waypoints[waypoint_choice][0],lon1 = waypoints[waypoint_choice][1];
+    /*double tot_dX = distance(lat0, lon0, lat1, lon1);
+    double dX = tot_dX < max_dX ? tot_dX : max_dX; //1000 meters max
+    double dZ = cur_alt - waypoints[waypoint_choice][2];*/
+    double dPsi = heading(lat0, lon0, lat1, lon1) - (double) cur_yaw;
+    dPsi = dPsi>PI?(dPsi-(2.0*PI)):dPsi;
+    /*char str[256];
+    sprintf(str, "performRelativeMove UNUSED_dX:%lf m, UNUSED_dZ:%lf m, dPsi:%lf rd\n", dX, dZ, dPsi);
+    IHM_PrintInfo(ihm, str);*/
+    deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, 0.0, 0.0, 0.0, (float)dPsi);
+    autoContinue = true;////TODO: implement job queue
+}
+
+void displayWaypoint() {
+    double dist = distance(cur_lat, cur_lon, waypoints[waypoint_choice][0], waypoints[waypoint_choice][1]);
+    double head = heading(cur_lat, cur_lon, waypoints[waypoint_choice][0], waypoints[waypoint_choice][1]);
+    double max_move_dist = dist < 1000.0 ? dist : 1000.0;
+
+    char str[256];
+    sprintf(str,
+            "{WP_%i_LAT:%lf, WP_%i_LON:%lf, WP_%i_ALT:%lf, WP_%i_YAW:%lf, DISTANCE:%f, HEADING:%f} MAX_MOVE_DIST:%lf\n",
+            waypoint_choice,
+            waypoints[waypoint_choice][0],
+            waypoint_choice,
+            waypoints[waypoint_choice][1],
+            waypoint_choice,
+            waypoints[waypoint_choice][2],
+            waypoint_choice,
+            waypoints[waypoint_choice][3],
+            (float) dist,
+            (float) head,
+            (float) max_move_dist
+    );
+    IHM_PrintInfo(ihm, str);
+}
+
+void performTakeoff(ARCONTROLLER_Device_t *deviceController){
+    eARCONTROLLER_ERROR error = ARCONTROLLER_OK;
+    if(autoContinue){ autoContinue = false; }
+    //TODO: check status of nearby airspace flight restrictions instead of just checking advisory color file
+    FILE *file = fopen(cur_advisory_color_filePathStr, "r");
+    char line[256];
+    int res = fscanf(file, "advisory_color: %s", line);
+    if (res < 0) {
+        IHM_PrintInfo(ihm, "ERROR cur_advisory_color_filePathStr FAILED READ");
+        break;
+    }
+
+    fclose(file);
+    //printf("%s", line);
+    if (!strstr(line, "green")) ////TODO: check waivers if not green
+    {
+        //abort takeoff
+        IHM_PrintInfo(ihm, "ABORT TAKEOFF advisory_color NOT green\n");
+        break;
+    } else if(insideExclusionZone){
+        //abort takeoff
+        IHM_PrintInfo(ihm, "ABORT TAKEOFF insideExclusionZone: true\n");
+        break;
+    }else {
+        IHM_PrintInfo(ihm, "advisory_color: green\n\n");
+        //set max pitch and roll
+        float currentMaxPitchRoll = 30.0;
+        deviceController->aRDrone3->sendPilotingSettingsMaxTilt(deviceController->aRDrone3,
+                                                                currentMaxPitchRoll);
+
+
+        //set max vertical speed
+        float currentMaxVerticalSpeed = 2.5;
+        deviceController->aRDrone3->sendSpeedSettingsMaxVerticalSpeed(deviceController->aRDrone3,
+                                                                      currentMaxVerticalSpeed);
+
+        //set max pitch roll rotational speed
+        float currentMaxPitchRollRotationSpeed = 300.0;
+        deviceController->aRDrone3->sendSpeedSettingsMaxPitchRollRotationSpeed(deviceController->aRDrone3,
+                                                                               currentMaxPitchRollRotationSpeed);
+
+        //set max rotational speed
+        float currentMaxRotationalSpeed = 200.0;
+        deviceController->aRDrone3->sendSpeedSettingsMaxRotationSpeed(deviceController->aRDrone3,
+                                                                      currentMaxRotationalSpeed);
+
+        // send a takeoff command to the drone
+        error = deviceController->aRDrone3->sendPilotingTakeOff(deviceController->aRDrone3);
+    }
+}
+
 
 // IHM callbacks:
 
@@ -716,137 +1165,110 @@ void onInputEvent(eIHM_INPUT_EVENT event, void *customData) {
             break;
         case IHM_INPUT_EVENT_EMERGENCY:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 // send a Emergency command to the drone
                 error = deviceController->aRDrone3->sendPilotingEmergency(deviceController->aRDrone3);
             }
             break;
         case IHM_INPUT_EVENT_LAND:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 // send a landing command to the drone
                 error = deviceController->aRDrone3->sendPilotingLanding(deviceController->aRDrone3);
             }
             break;
         case IHM_INPUT_EVENT_TAKEOFF:
             if (deviceController != NULL) {
-                //check status of nearby airspace flight restrictions
-                FILE *file = fopen("/home/kevin/Documents/cur_advisory_color.txt", "r");
-                char line[256];
-                fscanf(file, "advisory_color: %s", line);
-                fclose(file);
-                //printf("%s", line);
-                if (!strstr(line, "green")) {
-                    //abort takeoff
-                    IHM_PrintInfo(ihm, "Error advisory_color is not green, takeoff aborted\n\n");
-                    break;
-                } else {
-                    //IHM_PrintInfo(ihm, "advisory_color is green\n\n");
-                    // send a takeoff command to the drone
-                    error = deviceController->aRDrone3->sendPilotingTakeOff(deviceController->aRDrone3);
-                }
+                performTakeoff(deviceController);
             }
             break;
         case IHM_INPUT_EVENT_UP:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 // set the flag and speed value of the piloting command
                 error = deviceController->aRDrone3->setPilotingPCMDGaz(deviceController->aRDrone3, maxVal);
             }
             break;
         case IHM_INPUT_EVENT_DOWN:
+            if(autoContinue){ autoContinue = false; }
             if (deviceController != NULL) {
                 error = deviceController->aRDrone3->setPilotingPCMDGaz(deviceController->aRDrone3, -maxVal);
             }
             break;
         case IHM_INPUT_EVENT_RIGHT:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDYaw(deviceController->aRDrone3, maxVal);
             }
             break;
         case IHM_INPUT_EVENT_LEFT:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDYaw(deviceController->aRDrone3, -maxVal);
             }
             break;
         case IHM_INPUT_EVENT_FORWARD:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDPitch(deviceController->aRDrone3, maxVal);
                 error = deviceController->aRDrone3->setPilotingPCMDFlag(deviceController->aRDrone3, 1);
             }
             break;
         case IHM_INPUT_EVENT_BACK:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDPitch(deviceController->aRDrone3, -maxVal);
                 error = deviceController->aRDrone3->setPilotingPCMDFlag(deviceController->aRDrone3, 1);
             }
             break;
         case IHM_INPUT_EVENT_ROLL_LEFT:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDRoll(deviceController->aRDrone3, -maxVal);
                 error = deviceController->aRDrone3->setPilotingPCMDFlag(deviceController->aRDrone3, 1);
             }
             break;
         case IHM_INPUT_EVENT_ROLL_RIGHT:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 error = deviceController->aRDrone3->setPilotingPCMDRoll(deviceController->aRDrone3, maxVal);
                 error = deviceController->aRDrone3->setPilotingPCMDFlag(deviceController->aRDrone3, 1);
             }
             break;
         case IHM_INPUT_EVENT_HOME:
             if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
                 int start = 1;
                 error = deviceController->aRDrone3->sendPilotingNavigateHome(deviceController->aRDrone3,
                                                                              (uint8_t) start);
             }
             break;
-        case IHM_INPUT_EVENT_PLAN:
+        case IHM_INPUT_EVENT_NUM:
             if (deviceController != NULL) {
-                //flips //FRONT, BACK, RIGHT, LEFT
-                //eARCOMMANDS_ARDRONE3_ANIMATIONS_FLIP_DIRECTION direction = ARCOMMANDS_ARDRONE3_ANIMATIONS_FLIP_DIRECTION_BACK;
-                //deviceController->aRDrone3->sendAnimationsFlip(deviceController->aRDrone3, direction);
+                if(autoContinue){ autoContinue = false; }
+                //waypoint_choice = abs((waypoint_choice - 1) % 3);
+                int tmpNum = getNum();
+                tmpNum = tmpNum < 0 ? 0 : tmpNum; //TODO: line not needed if num is already [0-9]
+                tmpNum = tmpNum >= numWaypoints ? 0 : tmpNum;
+                waypoint_choice = tmpNum;
 
-                //float dX = 0.0, dY = 0.0, dZ = 0.0, dPsi = 0.0 - cur_yaw;
-                /*FILE *file = fopen("/home/kevin/Documents/flightplan.mavlink.txt", "r");
-                char lines[20][256];
-                int i = 0;
-                //fgets(lines[i], sizeof(lines[0]), file);
-                int choice = 2;
-                fscanf(file, "%s %s %s\n", lines[0], lines[1], lines[2]);
-                //printf("%s %s %s\n", lines[0],lines[1],lines[2]);
+                loadWaypoints();
+                displayWaypoint();
 
-
-                for (i = 0; i < 8; i++) {
-                    char index[256], cur_wp[256], coord_frame[256], cmd[256], param1[256], param2[256], param3[256], param4[256];
-                    double lat, lon, alt;
-                    char autocontinue[256];
-                    fscanf(file, "%s %s %s %s %s %s %s %s %lf %lf %lf %s\n", index, cur_wp, coord_frame, cmd, param1,
-                           param2, param3, param4, &lon, &lat, &alt, autocontinue);
-                    //fgets(lines[i], sizeof(lines[0]), file);
-                    //printf("%s", lines[i]);
-                    if (i == choice) {
-                        double hypotenuse = distance(cur_lat, cur_lon, lat, lon);
-                        dX = (float) distance(cur_lat, cur_lon, cur_lat, lon);
-                        dY = (float) distance(cur_lat, cur_lon, lat, cur_lon);
-                        dZ = 0;//(float) alt - cur_alt;
-                        char str[256];
-                        sprintf(str, "{cur_lat:%lf dg,cur_lon:%lf dg,cur_alt:%lf m},{lat:%lf dg,lon:%lf dg,alt:%lf m},{dX:%f m,dY:%f m,dZ:%f m, hypotenuse:%lf m}\n", cur_lat, cur_lon, cur_alt, lat, lon, alt, dX, dY, dZ, hypotenuse);
-                        IHM_PrintInfo(ihm, str);
-                    }
-
-                }
-                fclose(file);*/
-
-                //relative move works
-                /*dX = 0.0, dY = 0.0, dZ = 0.0, dPsi = 0.0 - cur_yaw;
-                deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, dX, dY, dZ, dPsi);
-                sleep(5);
-
-                dX = 0.0, dY = 0.0, dZ = 0.0, dPsi = 360 * DEG2RAD;
-                deviceController->aRDrone3->sendPilotingMoveBy(deviceController->aRDrone3, dX, dY, dZ, dPsi);*/
-
-
-                //TODO: FIX
-                char filepath[256] = "flightplans/flightplan.mavlink";
-                eARCOMMANDS_COMMON_MAVLINK_START_TYPE type = ARCOMMANDS_COMMON_MAVLINK_START_TYPE_FLIGHTPLAN;
-                error = deviceController->common->sendMavlinkStart(deviceController->common, filepath, type);
+            }
+            break;
+        case IHM_INPUT_EVENT_GOTO_CUR_WP:
+            if (deviceController != NULL) {
+                if(autoContinue){ autoContinue = false; }
+                ////TODO:fix by extracting to method with synced io
+                /*char yesNo[10];
+                IHM_PrintInfo(ihm,"PROMPT goto previous waypoint?");
+                scanf("%s", yesNo);
+                if(!strstr(yesNo,"y")){
+                    IHM_PrintInfo(ihm,"ABORT MOVE, yesNo NOT \"y\"");
+                    break;
+                }*/
+                performRelativeMove(deviceController);
             }
             break;
         case IHM_INPUT_EVENT_FLAT_TRIM:
@@ -854,18 +1276,39 @@ void onInputEvent(eIHM_INPUT_EVENT event, void *customData) {
                 error = deviceController->aRDrone3->sendPilotingFlatTrim(deviceController->aRDrone3);
             }
             break;
-        case IHM_INPUT_EVENT_NONE:
+        case IHM_INPUT_EVENT_TOGGLE_STICKS:
+            rcDisabled = !rcDisabled;
+            char rcDisabledStr[256];
+            sprintf(rcDisabledStr, "rcDisabled:%s", rcDisabled ? "true" : "false");
+            IHM_PrintSticks(ihm, rcDisabledStr);
+            break;
+        case IHM_INPUT_EVENT_TOGGLE_VERBOSE_MODE:
+            verboseModeDisabled = !verboseModeDisabled;
+            char verboseModeDisabledStr[256];
+            sprintf(verboseModeDisabledStr, "verboseModeDisabled:%s", verboseModeDisabled ? "true" : "false");
+            IHM_PrintInfo(ihm, verboseModeDisabledStr);
+            break;
+        case IHM_INPUT_EVENT_TOGGLE_BOUNDING_MODE:
+            boundingModeDisabled = !boundingModeDisabled;
+            if(boundingModeDisabled) { insideExclusionZone = 0; }
+            char boundingModeDisabledStr[256];
+            sprintf(boundingModeDisabledStr, "boundingModeDisabled:%s", boundingModeDisabled ? "true" : "false");
+            IHM_PrintInfo(ihm, boundingModeDisabledStr);
+            break;
+        case IHM_INPUT_EVENT_NONE: //TODO: REMOVE STICKS STUFF FROM INPUT LOOP AND TEST FOR OTHER RC BUTTONS
             if (deviceController != NULL) {
-                bool rcDisabled = true;
+
                 if (rcDisabled) {
-                    error = deviceController->aRDrone3->setPilotingPCMD(deviceController->aRDrone3, 0, 0, 0, 0, 0,
-                                                                        0);
+                    error = deviceController->aRDrone3->setPilotingPCMD(deviceController->aRDrone3, 0, 0, 0, 0, 0, 0);
                 } else {
-                    FILE *file = fopen("/home/kevin/Documents/DJISamples/RCServer/cur_sticks.txt", "r");
-                    //char line[256];
-                    //fgets(line, sizeof(line), file);
+                    FILE *file = fopen(cur_sticks_filePathStr, "r");
                     int rh, rv, lv, lh;
-                    fscanf(file, "cur_sticks: [%d,%d,%d,%d]", &rh, &rv, &lv, &lh);
+                    int res = fscanf(file, "cur_sticks: [%d,%d,%d,%d]", &rh, &rv, &lv, &lh);
+                    if (res < 0) {
+                        if(!verboseModeDisabled)
+                            IHM_PrintInfo(ihm, "cur_sticks_filePathStr failed read");
+                        break;
+                    }
                     fclose(file);
                     int8_t roll = lh / 7,
                             pitch = lv / 7,
@@ -883,9 +1326,18 @@ void onInputEvent(eIHM_INPUT_EVENT event, void *customData) {
                     //s  = spec.tv_sec;
                     //ms = round(spec.tv_nsec / 1.0e6);
                     uint32_t timestampAndSeqNum = 0;
-                    //sprintf(line,"cur_sticks: [%d,%d,%d,%d], [roll:%d,pitch:%d,yaw:%d,gaz:%d]", rh, rv, lv, lh, roll, pitch, yaw, gaz);
-                    //printf("%s", line);
-                    //IHM_PrintSticks(ihm, line);
+
+                    if(!verboseModeDisabled) {
+                        char line[256];
+                        //fgets(line, sizeof(line), file);
+                        sprintf(line, "cur_sticks: [%d,%d,%d,%d], [roll:%d,pitch:%d,yaw:%d,gaz:%d]", rh, rv, lv, lh,
+                                roll, pitch, yaw, gaz);
+                        //printf("%s", line);
+                        IHM_PrintSticks(ihm, line);
+                    }
+                    /*if( roll || pitch || yaw || gaz ){
+                        if(autoContinue){ autoContinue = false; }
+                    }*/
                     error = deviceController->aRDrone3->setPilotingPCMD(deviceController->aRDrone3, flag, roll,
                                                                         pitch,
                                                                         yaw, gaz, timestampAndSeqNum);
@@ -914,12 +1366,50 @@ int customPrintCallback(eARSAL_PRINT_LEVEL level, const char *tag, const char *f
     return 1;
 }
 
-double distance(double lat_0, double lon_0, double lat_1, double lon_1) {
-    double lat_0_rad = lat_0 * DEG2RAD, lon_0_rad = lon_0 * DEG2RAD, lat_1_rad = lat_1 * DEG2RAD, lon_1_rad =
-            lon_1 * DEG2RAD;
+double distance(double lat_0, double lon_0,
+                double lat_1, double lon_1) {
+    double lat_0_rad = lat_0 * DEG2RAD, lon_0_rad = lon_0 * DEG2RAD,
+            lat_1_rad = lat_1 * DEG2RAD, lon_1_rad = lon_1 * DEG2RAD;
     double central_angle_rad = acos(
             sin(lat_0_rad) * sin(lat_1_rad) + cos(lat_0_rad) * cos(lat_1_rad) * cos(lon_0_rad - lon_1_rad));
     double mean_radius = 6371; //earth, km
     return central_angle_rad * mean_radius * 1000; //meters
 }
 
+////TODO: UPDATE: relative move is accurate enough for ~100m per move
+////TODO: fix incorrect result by about 6deg, possibly add abs to to difference calc
+double heading(double lat_0, double lon_0,
+               double lat_1, double lon_1) {
+    double dLon = (lon_1 * DEG2RAD - lon_0 * DEG2RAD);
+
+    double y = sin(dLon) * cos(lat_1 * DEG2RAD);
+    double x = cos(lat_0 * DEG2RAD) * sin(lat_1 * DEG2RAD) - sin(lat_0 * DEG2RAD) * cos(lat_1 * DEG2RAD) * cos(dLon);
+
+    double heading = atan2(y, x);
+    heading = fmod((heading + 2.0 * PI), 2.0 * PI);
+
+    return heading;
+}
+
+/*
+
+ Reference: https://wrf.ecse.rpi.edu//Research/Short_Notes/pnpoly.html
+
+ Arg            Desc
+ nvert          Number of vertices in the polygon.
+ vertx, verty   Arrays containing the x- and y-coordinates of the polygon's vertices.
+ testx, testy   X- and y-coordinate of the test point.
+
+ */
+
+int pointInPolygon(int nvert, double *vertx, double *verty, double testx, double testy)
+{
+    int i, j, c = 0;
+    for (i = 0, j = nvert-1; i < nvert; j = i++) {
+        if (((verty[i] > testy) != (verty[j] > testy)) &&
+            (testx < (vertx[j] - vertx[i]) * (testy - verty[i]) / (verty[j] - verty[i]) + vertx[i])) {
+            c = !c;
+        }
+    }
+    return c;
+}

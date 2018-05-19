@@ -51,8 +51,12 @@ typedef enum
     IHM_INPUT_EVENT_ROLL_LEFT,
     IHM_INPUT_EVENT_ROLL_RIGHT,
     IHM_INPUT_EVENT_HOME,
-    IHM_INPUT_EVENT_PLAN,
     IHM_INPUT_EVENT_FLAT_TRIM,
+    IHM_INPUT_EVENT_TOGGLE_STICKS,
+    IHM_INPUT_EVENT_NUM,
+    IHM_INPUT_EVENT_GOTO_CUR_WP,
+    IHM_INPUT_EVENT_TOGGLE_VERBOSE_MODE,
+    IHM_INPUT_EVENT_TOGGLE_BOUNDING_MODE,
 }eIHM_INPUT_EVENT;
 
 typedef void (*IHM_onInputEvent_t) (eIHM_INPUT_EVENT event, void *customData);
@@ -78,6 +82,7 @@ void IHM_PrintSticks(IHM_t *ihm, char *sticksStr);
 void IHM_PrintGPS(IHM_t *ihm, double latitude, double longitude, double altitude);
 void IHM_PrintAttitude(IHM_t *ihm, float roll, float pitch, float yaw);
 void IHM_PrintSpeed(IHM_t *ihm, float speedX, float speedY, float speedZ);
+int getNum(void);
 
 
 #endif /* _BEBOP_SAMPLE_IHM_H_ */
