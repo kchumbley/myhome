@@ -1,7 +1,7 @@
 #!/bin/bash
-ARSDK_DIR="/home/kevin/Documents/ParrotSamples/"
+ARSDK_DIR=~/Documents/ParrotSamples/
 
-sudo apt-get install git build-essential autoconf libtool python python3 libavahi-client-dev libavcodec-dev libavformat-dev libswscale-dev libncurses5-dev mplayer
+sudo apt-get install git build-essential autoconf libtool python python3 libavahi-client-dev libavcodec-dev libavformat-dev libswscale-dev libncurses5-dev mplayer zlib1g-dev
 
 git config --global user.email "kchumbley@gmail.com"
 git config --global user.name "Kevin Chumbley"

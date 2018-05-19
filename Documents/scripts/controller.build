@@ -1,5 +1,5 @@
 #!/bin/bash
-ARSDK_DIR="/home/kevin/Documents/ParrotSamples/"
+ARSDK_DIR=~/Documents/ParrotSamples/
 cd "${ARSDK_DIR}"
 ./build.sh -p arsdk-native -t build-sample-BebopSample -j
 
