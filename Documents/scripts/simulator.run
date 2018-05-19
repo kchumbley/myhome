@@ -1,5 +1,13 @@
 #!/bin/bash
 sudo systemctl start firmwared.service
 sleep 1
-cd ~/Documents/
-sphinx my_worlds/myempty.world
+
+cd /home/kevin/Documents/
+# TODO wifi network is not visible without enabling arbitrary port forawrding in command line args
+sphinx my_worlds/myempty.world --port-forwarding=107.77.97.94
+
+##sphinx --log-level dbg /home/kevin/Documents/my_drones/mybebop.drone /opt/parrot-sphinx/usr/share/sphinx/worlds/outdoor_2.world
+
+##sphinx --log-level dbg my_drones/mybebop.drone my_worlds/myoutdoor_2.world
+
+#sphinx --log-level dbg my_worlds/myempty.world

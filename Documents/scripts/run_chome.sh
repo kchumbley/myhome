@@ -1,7 +1,4 @@
-#!/bin/bash
-gnome-terminal --geometry 80x10+0+200 -e 'bash -c "cd /home/kevin/Documents/DJISamples/RCServer/; ./run_log_server.bash"'
-
-sleep 1
+#!/bin/bash -x
 
 FAKEUSER="${1:-fake-chrome-user}"
 CHROMEROOT=$HOME/.chromeroot/
@@ -27,12 +24,17 @@ PARANOID_OPTIONS="\
         --remember-cert-error-decisions \
         --ignore-urlfetcher-cert-requests \
         --allow-running-insecure-content \
-        --window-position=0,400 \
-        --window-size=700,300 \
+        --window-position=200,400 \
+        --window-size=200,400 \
         --no-pings \
         --user-data-dir=${PROFILE} \
         --disk-cache-dir=${DISK_CACHEDIR} \
         --disk-cache-size=${DISK_CACHESIZE} \
         --media-cache-size=${MEDIA_CACHESIZE} \
-        http://localhost:4567 && pkill ruby
+        http://localhost:4567
+        2>&1
+
+#--ignore-certificate-errors \
+#--proxy-server="socks4://localhost:30604" \
+#--host-resolver-rules="MAP * 0.0.0.0 , EXCLUDE localhost" \
 

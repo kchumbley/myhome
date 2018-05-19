@@ -1,0 +1,133 @@
+<?xml version="1.0"?>
+<sdf version="1.5">
+  <world name="default">
+    <gui>
+      <camera name="user_camera">
+        <pose>-2 0 0.5 0.0 0.0 0.0</pose>
+        <track_visual>
+					<name>mybebop</name><!--track model from startup-->
+          <static>true</static>
+          <use_model_frame>true</use_model_frame>
+          <xyz>-2.0 0.0 0.5</xyz>
+          <inherit_yaw>true</inherit_yaw>
+        </track_visual>
+      </camera>
+    </gui>
+    <spherical_coordinates>
+			<!--
+				parrot_hq_france, 45m above sea level, { 108.4 nT 20,799.7 nT 43,289.9 nT }, 2015-08-18  
+			-->
+      <latitude_deg>47.550820</latitude_deg><!--was 48.878922-->
+      <longitude_deg>-117.599393</longitude_deg><!--was 2.367782-->
+    </spherical_coordinates>
+    <physics type="ode">
+      <real_time_update_rate>1000</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <max_contacts>20</max_contacts>
+      <gravity>0 0 -9.81</gravity>
+			<!--ENU nT-->
+			<magnetic_field>4.6800e-6 17.9432e-6 -50.9394e-6</magnetic_field> <!--was 0.1062e-6 20.8038e-6 -43.2881e-6-->
+      <ode>
+        <solver>
+          <type>world</type>
+          <min_step_size>0.0001</min_step_size>
+          <iters>50</iters>
+          <precon_iters>0</precon_iters>
+          <sor>1.4</sor>
+          <use_dynamic_moi_rescaling>1</use_dynamic_moi_rescaling>
+        </solver>
+        <constraints>
+          <cfm>0</cfm>
+          <erp>0.2</erp>
+          <contact_max_correcting_vel>100.0</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+    </physics>
+    <atmosphere type="adiabatic">
+      <temperature>298.15</temperature>
+      <pressure>102133</pressure><!--was 101325-->
+      <temperature_gradient>-0.0065</temperature_gradient>
+    </atmosphere>
+		<plugin name="fwman" filename="libsphinx_fwman.so">
+			<spawn_point name="default">
+				<pose>9 4 1.22 0 0 3.14159</pose>
+			</spawn_point>
+		</plugin>
+    <!--*****************-->
+    <!--Scene description-->
+    <!--*****************-->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://house_1</uri>
+      <pose>-4.18156 -5.60557 0 0 -0 3.12318</pose>
+    </include>
+    <include>
+      <uri>model://house_2</uri>
+      <pose>2 10 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://house_3</uri>
+      <pose>-5 9 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://jersey_barrier</uri>
+      <pose>3 -3 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://jersey_barrier</uri>
+      <pose>6 -1 0 0 -0 1.6</pose>
+    </include>
+    <include>
+      <uri>model://grey_wall</uri>
+      <pose>10.402 7.71769 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://nist_stairs_120</uri>
+      <pose>9.01164 2.82223 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://nist_elevated_floor_120</uri>
+      <pose>9 4 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://nist_maze_wall_240</uri>
+      <pose>9 4 0 0 -0 0</pose>
+    </include>
+    <include>
+      <uri>model://nist_maze_wall_triple_holes_120</uri>
+      <pose>9.02578 4.02961 1.2 0 -0 1.6</pose>
+    </include>
+    <model name="asphalt_plane">
+      <pose>0 0 -0.05 0 0 0</pose>
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>30 30 .1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <cast_shadows>false</cast_shadows>
+          <geometry>
+            <box>
+              <size>30 30 .1</size>
+            </box>
+          </geometry>
+          <material>
+            <script>
+              <uri>model://asphalt_plane/materials/scripts</uri>
+              <uri>model://asphalt_plane/materials/textures</uri>
+              <name>vrc/asphalt</name>
+            </script>
+          </material>
+        </visual>
+      </link>
+    </model>
+  </world>
+</sdf>
