@@ -1,10 +1,13 @@
 #!/bin/bash
-sudo systemctl start firmwared.service
+FDC_PING=`fdc ping`; if [ "${FDC_PING}" = "PONG" ]; then echo "firmwared is running"; else echo "please start firmwared"; sudo systemctl start firmwared.service; fi
+
 sleep 1
 
-cd /home/kevin/Documents/
+cd ~/Documents/myParrotSphinx
 # TODO wifi network is not visible without enabling arbitrary port forawrding in command line args
-sphinx my_worlds/myempty.world --port-forwarding=107.77.97.94
+sphinx myWorlds/myEmpty.world --log-level dbg
+
+##--port-forwarding=107.77.97.94
 
 ##sphinx --log-level dbg /home/kevin/Documents/my_drones/mybebop.drone /opt/parrot-sphinx/usr/share/sphinx/worlds/outdoor_2.world
 
