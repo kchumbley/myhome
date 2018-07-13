@@ -9,9 +9,8 @@ For my own understanding and future support of community based robotics projects
 Using: Parrot Sphinx Simulator, Parrot ARSDK, DJI Mobile SDK, Ubuntu 16.04, ...
 </p>
 <p>
-Including: Videos composed of object detection and flightplan image sequences collected in AirSim.
+Including: Videos composed of object detection and flightplan image sequences collected in AirSim. https://youtu.be/nse7bDev2sI
 </p>
-https://youtu.be/nse7bDev2sI
 <p>
 Project Status: IN_PROGRESS
 </p>
