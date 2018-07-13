@@ -11,9 +11,7 @@ Using: Parrot Sphinx Simulator, Parrot ARSDK, DJI Mobile SDK, Ubuntu 16.04, ...
 <p>
 Including: Videos composed of object detection and flightplan image sequences collected in AirSim.
 </p>
-<p>
 <iframe width="560" height="315" src="https://www.youtube.com/embed/nse7bDev2sI" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-</p>
 <p>
 Project Status: IN_PROGRESS
 </p>
